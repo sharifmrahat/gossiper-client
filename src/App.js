@@ -1,12 +1,38 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Pusher from "pusher-js";
 
 function App() {
   const [username, setUsername] = useState("username");
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  let allMessages = [];
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    // Enable pusher logging - don't include this in production
+    Pusher.logToConsole = true;
+
+    const pusher = new Pusher("cb93647401348f21dbb4", {
+      cluster: "ap2",
+    });
+
+    const channel = pusher.subscribe("chat");
+    channel.bind("message", function (data) {
+      allMessages.push(data);
+      setMessages(allMessages);
+    });
+  }, [allMessages]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    await fetch("http://localhost:8000/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username,
+        message,
+      }),
+    });
     setMessage("");
   };
   return (
